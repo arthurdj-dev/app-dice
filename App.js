@@ -14,7 +14,54 @@ const DICE = [
   { label: 'D20', sides: 20, color: '#FF9F43' },
 ];
 
+const SHAPE_CONFIG = {
+  D4:  { w: 72,  h: 72,  borderRadius: 4,  rotate: '45deg' },
+  D6:  { w: 88,  h: 88,  borderRadius: 10, rotate: null },
+  D8:  { w: 78,  h: 78,  borderRadius: 16, rotate: '45deg' },
+  D10: { w: 66,  h: 84,  borderRadius: 8,  rotate: '45deg' },
+  D12: { w: 88,  h: 88,  borderRadius: 44, rotate: null },
+  D20: { w: 88,  h: 88,  borderRadius: 20, rotate: '22deg' },
+};
+
 const MAX_DICE = 5;
+
+function DieFace({ die, value, anim }) {
+  const scale = anim.interpolate({
+    inputRange:  [0, 0.5, 1],
+    outputRange: [1, 1.4,  1],
+  });
+  const rollRotate = anim.interpolate({
+    inputRange:  [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const cfg = SHAPE_CONFIG[die.label];
+  const counterRotate = cfg.rotate
+    ? [{ rotate: `-${cfg.rotate}` }]
+    : [];
+
+  return (
+    <Animated.View style={{ transform: [{ scale }, { rotate: rollRotate }] }}>
+      <View style={[
+        styles.dieShape,
+        {
+          width: cfg.w,
+          height: cfg.h,
+          borderRadius: cfg.borderRadius,
+          borderColor: die.color,
+          transform: cfg.rotate ? [{ rotate: cfg.rotate }] : [],
+        },
+      ]}>
+        <View style={[styles.dieInner, { transform: counterRotate }]}>
+          <Text style={[styles.diceVal, { color: die.color }]}>{value}</Text>
+          <Text style={[styles.diceLabel, { color: die.color + '99' }]}>
+            {die.label}
+          </Text>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
 
 export default function App() {
   const [selectedDie, setSelectedDie] = useState(DICE[1]);
@@ -111,31 +158,14 @@ export default function App() {
         ) : (
           <>
             <View style={styles.diceRow}>
-              {results.map((val, i) => {
-                const scale = anims[i].interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [1, 1.4, 1],
-                });
-                const rotate = anims[i].interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '360deg'],
-                });
-                return (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.diceBox,
-                      { borderColor: selectedDie.color },
-                      { transform: [{ scale }, { rotate }] },
-                    ]}
-                  >
-                    <Text style={[styles.diceVal, { color: selectedDie.color }]}>{val}</Text>
-                    <Text style={[styles.diceLabel, { color: selectedDie.color + '99' }]}>
-                      {selectedDie.label}
-                    </Text>
-                  </Animated.View>
-                );
-              })}
+              {results.map((val, i) => (
+                <DieFace
+                  key={i}
+                  die={selectedDie}
+                  value={val}
+                  anim={anims[i]}
+                />
+              ))}
             </View>
             {quantity > 1 && (
               <Text style={styles.totalTxt}>
@@ -255,16 +285,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 12,
+    gap: 16,
   },
-  diceBox: {
-    width: 90, height: 90,
-    borderRadius: 18, borderWidth: 3,
-    backgroundColor: '#16213e',
-    alignItems: 'center', justifyContent: 'center',
+  dieShape: {
+    borderWidth: 3,
+    backgroundColor: '#0d0d1a',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+  },
+  dieInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   diceVal:   { fontSize: 34, fontWeight: 'bold' },
-  diceLabel: { fontSize: 12, marginTop: 2 },
+  diceLabel: { fontSize: 11, marginTop: 2 },
   totalTxt:  { color: '#aaa', fontSize: 18, marginTop: 16 },
 
   /* Roll button */
