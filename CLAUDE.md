@@ -28,10 +28,12 @@ Pas de scripts de test ou de lint configurés.
 
 Toute l'application tient dans `App.js` (composant unique). Deux structures de données pilotent l'UI :
 
-- **`DICE`** — tableau de 6 types de dés (D4→D20) avec leur couleur et leur max. Ajouter un type de dé = ajouter une entrée ici.
-- **`SHAPE_CONFIG`** — map `dieType → { borderRadius, aspectRatio }` qui donne à chaque dé sa forme visuelle distinctive.
+- **`DICE`** — tableau de 6 types de dés (D4→D20) avec `{ label, sides, color }`. Ajouter un type de dé = ajouter une entrée ici et dans `SHAPE_CONFIG`.
+- **`SHAPE_CONFIG`** — map `dieType → { w, h, borderRadius, rotate }` qui donne à chaque dé sa forme visuelle distinctive. `rotate` est une string CSS (`'45deg'`) ou `null`.
 
-Le composant interne **`DieFace`** reçoit une `Animated.Value` en prop et applique rotation + scale. L'animation est déclenchée dans `function roll()` via `Animated.sequence` avec `useNativeDriver: true`.
+Le composant interne **`DieFace`** reçoit une `Animated.Value` en prop et applique rotation + scale (avec contre-rotation du contenu textuel pour qu'il reste lisible). L'animation est déclenchée dans `function roll()` : chaque dé fait un `Animated.sequence` (aller-retour), tous lancés en `Animated.parallel`, avec `useNativeDriver: true`.
+
+`anims` est un tableau fixe de 5 `Animated.Value` (taille `MAX_DICE`), créé une seule fois via `useRef`. Seules les `quantity` premières valeurs sont utilisées à chaque lancer.
 
 État géré par `useState` : type de dé sélectionné, quantité (1-5), résultats affichés, historique (30 derniers lancers), état `isRolling`.
 

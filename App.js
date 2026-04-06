@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  ScrollView, Animated,
+  ScrollView, Animated, Easing,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -27,12 +27,12 @@ const MAX_DICE = 5;
 
 function DieFace({ die, value, anim }) {
   const scale = anim.interpolate({
-    inputRange:  [0, 0.5, 1],
-    outputRange: [1, 1.4,  1],
+    inputRange:  [0, 0.15, 0.85, 1],
+    outputRange: [1,  1.3,  1.3, 1],
   });
   const rollRotate = anim.interpolate({
     inputRange:  [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ['0deg', '720deg'],
   });
 
   const cfg = SHAPE_CONFIG[die.label];
@@ -73,38 +73,55 @@ export default function App() {
   const anims = useRef(
     Array.from({ length: MAX_DICE }, () => new Animated.Value(0))
   ).current;
+  const intervalRef = useRef(null);
 
   function roll() {
     if (isRolling) return;
     setIsRolling(true);
 
-    const rolls = Array.from({ length: quantity }, () =>
+    const finalRolls = Array.from({ length: quantity }, () =>
       Math.floor(Math.random() * selectedDie.sides) + 1
     );
 
     anims.slice(0, quantity).forEach(a => a.setValue(0));
 
+    // Affiche immédiatement les dés avec des valeurs aléatoires
+    setResults(Array.from({ length: quantity }, () =>
+      Math.floor(Math.random() * selectedDie.sides) + 1
+    ));
+
+    // Effet "slot machine" : change les chiffres rapidement pendant le lancer
+    intervalRef.current = setInterval(() => {
+      setResults(Array.from({ length: quantity }, () =>
+        Math.floor(Math.random() * selectedDie.sides) + 1
+      ));
+    }, 80);
+
     const animations = anims.slice(0, quantity).map(a =>
-      Animated.sequence([
-        Animated.timing(a, { toValue: 1, duration: 250, useNativeDriver: true }),
-        Animated.timing(a, { toValue: 0, duration: 250, useNativeDriver: true }),
-      ])
+      Animated.timing(a, {
+        toValue: 1,
+        duration: 900,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      })
     );
 
-    Animated.parallel(animations).start(() => setIsRolling(false));
-
-    setResults(rolls);
-    setHistory(prev => [{
-      id: Date.now(),
-      die:   selectedDie.label,
-      color: selectedDie.color,
-      qty:   quantity,
-      rolls,
-      total: rolls.reduce((s, v) => s + v, 0),
-      time:  new Date().toLocaleTimeString('fr-FR', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-      }),
-    }, ...prev].slice(0, 30));
+    Animated.parallel(animations).start(() => {
+      clearInterval(intervalRef.current);
+      setResults(finalRolls);
+      setHistory(prev => [{
+        id: Date.now(),
+        die:   selectedDie.label,
+        color: selectedDie.color,
+        qty:   quantity,
+        rolls: finalRolls,
+        total: finalRolls.reduce((s, v) => s + v, 0),
+        time:  new Date().toLocaleTimeString('fr-FR', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+        }),
+      }, ...prev].slice(0, 30));
+      setIsRolling(false);
+    });
   }
 
   return (
